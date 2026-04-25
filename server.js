@@ -1,38 +1,27 @@
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
-const fs = require('fs'); // Para salvar logs de vendas
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-
+const axios = require('axios');
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
 
-const DISCORD_WEBHOOK = "https://discordapp.com/api/webhooks/1496176353979007026/QVE9sfnG1qBErYwWW0iNM0UFvVHh5etuFQYolo7rbj8NiRJf4Xjo-Cci7h4ypkFJrVOe";
+app.use(cors());
+app.use(express.json());
+
+// SEU LINK DO WEBHOOK QUE VOCÊ ME MANDOU
+const DISCORD_WEBHOOK_URL = "https://discordapp.com/api/webhooks/1487722799874314240/k1mDmAMH2nNGk6bOcNpSD90uwfyCUaNiFNVDTlQm-b3Ls-oxqscDQQYfxeX3HIZ2pZxC";
 
 app.post('/api/order', async (req, res) => {
     try {
-        // Criar log local da venda antes de enviar ao Discord
-        const orderInfo = req.body.embeds[0].fields;
-        const logEntry = `[${new Date().toLocaleString()}] Nick: ${orderInfo[0].value} | Item: ${orderInfo[1].value} | Valor: ${orderInfo[2].value}\n`;
-        
-        fs.appendFileSync('vendas_carnagez.txt', logEntry);
-
-        const response = await fetch(DISCORD_WEBHOOK, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(req.body)
-        });
-
-        if (response.ok) {
-            res.status(200).send({ success: true });
-        } else {
-            res.status(500).send({ error: 'Erro no Webhook' });
-        }
+        // Envia os dados recebidos do site diretamente para o Discord
+        await axios.post(DISCORD_WEBHOOK_URL, req.body);
+        res.status(200).json({ message: "Pedido enviado com sucesso!" });
     } catch (error) {
-        res.status(500).send({ error: 'Erro interno' });
+        console.error("Erro ao enviar para o Discord:", error.message);
+        res.status(500).json({ error: "Erro ao processar pedido" });
     }
 });
 
-const PORT = 3000;
-app.listen(PORT, () => console.log(`Servidor CarnageZ rodando na porta ${PORT}`));
+// Porta automática para o Railway
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+});
